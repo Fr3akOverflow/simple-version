@@ -1,0 +1,4 @@
+fastapi>=0.140
+uvicorn>=0.30
+python-multipart>=0.0.20
+aiofiles>=24.1.0

@@ -1,0 +1,66 @@
+==========================================================
+ SIMPLE VERSION - Installation in 5 Schritten
+==========================================================
+
+1) Projekt auf den Ziel-Server kopieren
+   (z. B. nach /opt/):  scp -r simple-version root@<server>:/opt/
+
+2) In den Projektordner wechseln
+   cd /opt/simple-version
+
+3) Rechte setzen und installieren (als root)
+   chmod +x install.sh run.sh backup.sh
+   sudo ./install.sh
+
+   Der Installer prueft Python (>= 3.10), legt eine virtuelle
+   Umgebung (.venv) an, installiert alle Abhaengigkeiten,
+   richtet den systemd-Dienst "simple-version" ein (Autostart)
+   und oeffnet ggf. die Firewall.
+
+   Optional:   PORT=8080 ./install.sh          (anderer Port)
+               WORKERS=2 ./install.sh          (mehr Worker)
+               SERVICE_USER=svuser ./install.sh (Dienst-Benutzer)
+               COOKIE_SECURE=1 ./install.sh    (Cookie nur via HTTPS)
+               SESSION_DAYS=14 ./install.sh    (Session-Dauer, gleitend)
+               LOGIN_MAX_ATTEMPTS=/LOGIN_LOCK_MINUTES= (Login-Sperre)
+
+4) Starten / pruefen
+   systemctl status simple-version
+   Browser:  http://<server-ip>:8001
+
+5) Anmelden (Passwort SOFORT aendern!)
+   Benutzer:  admin    Passwort: admin
+   -> oben rechts auf "Passwort ändern" klicken, neues Passwort setzen.
+   (Für jede Rolle möglich - auch Benutzer/Supervisor können damit
+    ihr eigenes Passwort jederzeit selbst ändern.)
+
+OHNE systemd (z. B. Testrechner):
+   ./run.sh              (bzw.  PORT=8080 ./run.sh)
+
+SICHERHEIT (Standard):
+   - 5 Fehlversuche -> Login gesperrt (15 Minuten, laeuft automatisch ab)
+   - Passwort-Wechsel beendet andere Sessions des Benutzers
+   - Sessions: 7 Tage, gleitend verlaengert (HttpOnly-Cookie)
+
+BACKUP (ein Befehl):
+   sudo ./backup.sh                          -> /mnt/backups/
+   sudo ./backup.sh /pfad/zum/ziel
+   Sichert Konsistent Datenbank + alle Archiv-Dateien (ohne Stopp).
+
+----------------------------------------------------------
+ Startkonfiguration:  HOST=0.0.0.0  PORT=8001 (Standard)
+ Laufzeitdaten:       data/  (wird automatisch angelegt,
+                      enthaelt Datenbank + Archiv-Dateien;
+                      fuer Backups einfach backup.sh nutzen)
+----------------------------------------------------------
+
+Ausfuehrliche Anleitungen:
+   docs/00_Systemadministration-Server.md   (Server/IT)
+   docs/01_Anwendungsadmin.md               (Admin)
+   docs/02_Supervisor.md                    (Supervisor)
+   docs/03_Benutzer.md                      (Benutzer)
+   docs/README.md                           (Uebersicht)
+
+Voraussetzungen: Linux mit Python >= 3.10; fuer Autostart
+systemd und Root-Rechte. Mehr Details: docs/00_*
+==========================================================

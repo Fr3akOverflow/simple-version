@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Version</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:#1e293b;border-bottom:1px solid #334155;padding:14px 24px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-left h1{font-size:20px;font-weight:600;color:#38bdf8}
+.header-left .subtitle{color:#94a3b8;font-size:13px}
+.container{display:grid;grid-template-columns:320px 1fr;gap:0;height:calc(100vh - 61px)}
+@media(max-width:900px){.container{grid-template-columns:1fr;height:auto}}
+.sidebar{background:#111c2e;border-right:1px solid #334155;padding:16px;overflow-y:auto}
+.sidebar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-left:2px}
+.tree-error{background:#7f1d1d;border:1px solid #b91c1c;border-radius:8px;padding:10px 12px;font-size:12px;color:#fca5a5;margin-bottom:10px;word-break:break-word}
+.check-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.check-item{display:flex;align-items:center;gap:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 10px;font-size:14px;cursor:pointer;color:#e2e8f0;user-select:none;transition:border-color .15s}
+.check-item:hover{border-color:#38bdf8}
+.check-item input{width:16px;height:16px;accent-color:#38bdf8;cursor:pointer}
+.main{display:flex;flex-direction:column;overflow:hidden}
+.main-head{padding:20px 24px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.main-head h2{font-size:18px;font-weight:600}
+.breadcrumb{color:#94a3b8;font-size:13px;margin-top:4px}
+.titlebar{display:flex;align-items:center;gap:10px}
+.stats{display:flex;gap:10px}
+.stat-pill{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:4px 12px;font-size:12px;color:#94a3b8}
+.stat-pill b{color:#38bdf8}
+#archiveList{flex:1;overflow-y:auto;padding:16px 24px}
+.folder-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;cursor:pointer;margin-bottom:2px;user-select:none}
+.folder-row:hover{background:#1e293b}
+.folder-row.selected{background:#0ea5e9;color:#fff}
+.folder-name{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folder-actions{display:none;gap:4px}
+.folder-row:hover .folder-actions{display:flex}
+.icon-btn{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:6px}
+.icon-btn:hover{background:#334155;color:#fff}
+.folder-icon{font-size:13px;opacity:.9}
+.new-folder-form{padding:10px 8px 16px;border-bottom:1px solid #1e293b;margin-bottom:12px;display:flex;gap:6px}
+.new-folder-form input{flex:1;background:#0f172a;border:1px solid #475569;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:13px;outline:none;min-width:0}
+.new-folder-form input:focus{border-color:#38bdf8}
+.btn{background:#38bdf8;color:#0f172a;border:none;border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{background:#7dd3fc}
+.btn-outline{background:transparent;color:#38bdf8;border:1px solid #38bdf8}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #b91c1c}
+.btn-danger:hover{background:#991b1b}
+.btn-sm{background:#334155;border:1px solid #475569;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;color:#e2e8f0;font-weight:500;white-space:nowrap}
+.btn-sm:hover{background:#475569}
+.btn-sm:disabled{opacity:.4;cursor:not-allowed}
+.empty{text-align:center;padding:48px;color:#64748b}
+.empty-icon{font-size:40px;margin-bottom:8px}
+.empty p{font-size:13px}
+.archive-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.archive-info{flex:1;min-width:200px}
+.archive-name{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;word-break:break-all}
+.archive-meta{color:#94a3b8;font-size:12px;margin-top:4px;display:flex;gap:14px;flex-wrap:wrap}
+.badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600}
+.badge-frei{background:#065f46;color:#34d399}
+.badge-bearbeitung{background:#7f1d1d;color:#fca5a5}
+.archive-actions{display:flex;gap:6px;flex-wrap:wrap}
+textarea,select,input[type=text]{background:#0f172a;border:1px solid #475569;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px;outline:none;font-family:inherit}
+textarea:focus,select:focus,input[type=text]:focus{border-color:#38bdf8}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;justify-content:center;align-items:center;z-index:100;padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:#1e293b;border:1px solid #334155;border-radius:12px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:24px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-header h3{font-size:17px;font-weight:600}
+.close-btn{background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer}
+.close-btn:hover{color:#fff}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:500;color:#94a3b8;margin-bottom:6px}
+.req::after{content:" *";color:#f87171}
+.input-file{display:block}
+.comment-item{padding:12px 0;border-bottom:1px solid #1e293b}
+.comment-item:last-child{border-bottom:none}
+.comment-action{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#38bdf8;font-weight:600}
+.comment-text{font-size:14px;margin-top:4px;word-break:break-word}
+.comment-meta{font-size:12px;color:#64748b;margin-top:4px}
+.version-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1e293b}
+.version-item:last-child{border-bottom:none}
+#toast{position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 18px;font-size:13px;z-index:200;opacity:0;transform:translateY(10px);transition:.25s;max-width:340px}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.error{border-color:#b91c1c;color:#fca5a5}
+.auth-user{display:inline-flex;align-items:center;gap:10px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:5px 12px;font-size:13px}
+.role-badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 8px;border-radius:8px}
+.role-admin{background:#1d4ed81a;color:#60a5fa;border:1px solid #1d4ed8}
+.role-supervisor{background:#7c3aed1a;color:#a78bfa;border:1px solid #7c3aed}
+.role-user{background:#065f461a;color:#34d399;border:1px solid #065f46}
+#loginScreen{position:fixed;inset:0;background:#0f172a;display:none;place-items:center;z-index:300}
+#loginScreen.active{display:grid}
+.login-card{background:#1e293b;border:1px solid #334155;border-radius:16px;padding:36px;width:100%;max-width:380px}
+.login-card h1{font-size:22px;color:#38bdf8;margin-bottom:6px;text-align:center}
+.login-card p{color:#94a3b8;font-size:13px;text-align:center;margin-bottom:24px}
+.login-card input[type=text],.login-card input[type=password]{width:100%;margin-bottom:12px}
+.user-card{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.user-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.user-head .uname{font-weight:600;font-size:14px}
+.user-head .udesc{color:#64748b;font-size:12px}
+.perm-chip{display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:3px 10px;font-size:12px;margin:4px 6px 0 0}
+.perm-chip button{background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;line-height:1}
+.perm-chip button:hover{color:#fca5a5}
+.perms-title{font-size:12px;color:#94a3b8;margin:10px 0 4px;font-weight:500}
+.manage-meta{color:#94a3b8;font-size:12px;margin-top:2px}
+.select-row{display:flex;gap:8px;margin-top:8px}
+.select-row select{flex:1;min-width:0}
+footer{margin-top:40px;padding:16px 24px;text-align:center;font-size:13px;color:#64748b;border-top:1px solid #334155}
+</style>
+</head>
+<body>
+<div id="appWrap" style="display:none">
+<div class="header">
+  <div class="header-left">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M12 11v5M9.5 13.5h5"/></svg>
+    <div>
+      <h1>Simple Version</h1>
+      <div class="subtitle">Archiv-Verwaltung &amp; Bearbeitungsstatus</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="auth-user">
+    <span id="userChip"></span>
+    <span class="role-badge" id="roleBadge"></span>
+    <button class="btn" id="manageBtn" style="display:none" onclick="openManage()">⚙ Verwaltung</button>
+    <button class="btn btn-outline" onclick="openPasswordModal()">Passwort ändern</button>
+    <button class="btn btn-outline" onclick="doLogout()">Abmelden</button>
+  </div>
+</div>
+<div class="container">
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <span style="font-size:13px;font-weight:600;color:#94a3b8;letter-spacing:.04em;text-transform:uppercase">Ordner</span>
+      <span id="folderCount" class="stat-pill" style="display:none"></span>
+    </div>
+    <div class="new-folder-form" id="newFolderForm">
+      <input type="text" id="newFolderName" placeholder="Neuer Ordner im Stammbereich...">
+      <button class="btn" id="newFolderBtn">+</button>
+    </div>
+    <div id="treeError" class="tree-error" style="display:none"></div>
+    <div id="folderTree">
+      <div class="empty" style="padding:20px"><p>Lade Ordner...</p></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="main-head">
+      <div class="titlebar">
+        <div>
+          <h2 id="currentFolderName">Bitte Ordner wählen</h2>
+          <div class="breadcrumb" id="breadcrumb"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="uploadBtn" disabled onclick="openUpload()">Upload</button>
+        <button class="btn btn-outline" id="subFolderBtn" disabled onclick="openSubFolder()">Unterordner</button>
+        <button class="btn btn-danger" id="deleteFolderBtn" disabled onclick="deleteCurrentFolder()">Ordner löschen</button>
+      </div>
+    </div>
+    <div id="archiveList"><div class="empty"><div class="empty-icon">🗂️</div><p>Wähle links einen Ordner aus</p></div></div>
+  </div>
+</div>
+</div>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>Simple Version</h1>
+    <p>Anmeldung erforderlich</p>
+    <form id="loginForm">
+      <input type="text" id="loginUser" placeholder="Benutzername" autocomplete="username" required>
+      <input type="password" id="loginPass" placeholder="Passwort" autocomplete="current-password" required>
+      <button class="btn" type="submit" style="width:100%;margin-top:4px">Anmelden</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Archiv hochladen</h3><button class="close-btn" onclick="closeModal('uploadModal')">&times;</button></div>
+    <form id="uploadForm">
+      <div class="form-group">
+        <label class="req">Datei</label>
+        <input type="file" class="input-file" id="uploadFile" required>
+      </div>
+      <div class="form-group">
+        <label class="req">Kommentar (Pflicht)</label>
+        <textarea id="uploadComment" rows="3" required placeholder="Was ändert sich in dieser Version?"></textarea>
+      </div>
+      <button class="btn" type="submit" style="width:100%">Hochladen</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="subfolderModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Unterordner anlegen</h3><button class="close-btn" onclick="closeModal('subfolderModal')">&times;</button></div>
+    <form id="subfolderForm">
+      <div class="form-group">
+        <label class="req">Kategorien</label>
+        <div class="check-grid" id="subfolderChecks">
+          <label class="check-item"><input type="checkbox" name="subcat" value="SPS"> SPS</label>
+          <label class="check-item"><input type="checkbox" name="subcat" value="HMI"> HMI</label>
+          <label class="check-item"><input type="checkbox" name="subcat" value="Frequenzumformer"> Frequenzumformer</label>
+          <label class="check-item"><input type="checkbox" name="subcat" value="Safety"> Safety</label>
+          <label class="check-item"><input type="checkbox" name="subcat" value="Zeichnung-E"> Zeichnung-E</label>
+          <label class="check-item"><input type="checkbox" name="subcat" value="Zeichnung-M"> Zeichnung-M</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Eigener Name (optional)</label>
+        <input type="text" id="subfolderName" placeholder="z.B. Kühlanlage">
+      </div>
+      <button class="btn" type="submit" style="width:100%">Anlegen</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="editModalTitle">Bearbeitungsstatus</h3><button class="close-btn" onclick="closeModal('editModal')">&times;</button></div>
+    <form id="editForm">
+      <div class="form-group">
+        <label class="req">Kommentar (Pflicht beim Setzen auf "In Bearbeitung")</label>
+        <textarea id="editComment" rows="3" required placeholder="Warum wird das Archiv bearbeitet?"></textarea>
+      </div>
+      <button class="btn" type="submit" style="width:100%">Bestätigen</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header"><h3 id="detailTitle">Archiv</h3><button class="close-btn" onclick="closeModal('detailModal')">&times;</button></div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="manageModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header"><h3>Verwaltung</h3><button class="close-btn" onclick="closeModal('manageModal')">&times;</button></div>
+    <div id="createUserSection" style="display:none">
+      <div class="form-group">
+        <label class="req">Benutzer anlegen</label>
+        <div class="select-row" style="margin-top:0">
+          <input type="text" id="nuUsername" placeholder="Benutzername">
+          <input type="text" id="nuDisplay" placeholder="Anzeigename (optional)">
+          <input type="password" id="nuPassword" placeholder="Passwort">
+          <select id="nuRole"><option value="supervisor">Supervisor</option><option value="user">Benutzer</option><option value="admin">Admin</option></select>
+          <button class="btn" onclick="createUser()">+</button>
+        </div>
+      </div>
+    </div>
+    <div id="manageBody"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header"><h3>Passwort ändern</h3><button class="close-btn" onclick="closeModal('passwordModal')">&times;</button></div>
+    <form id="passwordForm">
+      <div class="form-group">
+        <label class="req">Aktuelles Passwort</label>
+        <input type="password" id="pwCurrent" placeholder="Aktuelles Passwort" required>
+      </div>
+      <div class="form-group">
+        <label class="req">Neues Passwort</label>
+        <input type="password" id="pwNew" placeholder="Neues Passwort" required>
+      </div>
+      <div class="form-group">
+        <label class="req">Neues Passwort wiederholen</label>
+        <input type="password" id="pwNew2" placeholder="Neues Passwort wiederholen" required>
+      </div>
+      <button class="btn" type="submit" style="width:100%">Speichern</button>
+    </form>
+  </div>
+</div>
+
+<script>
+let me = null;
+let currentFolderId = null;
+let currentArchiveId = null;
+let folderMap = {};      // id -> {name, parent_id}
+let pendingEditStatus = null;
+let subfolderParentId = null;
+
+async function api(url, opts = {}) {
+  const res = await fetch(url, opts);
+  if (res.status === 401 && url !== '/api/login' && url !== '/api/me') {
+    showLogin();
+    throw new Error("Nicht angemeldet");
+  }
+  if (!res.ok) {
+    let msg = "Fehler " + res.status;
+    try { const e = await res.json(); if (e.detail) msg = typeof e.detail === 'string' ? e.detail : e.detail[0].msg; } catch(e) {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+let loginAttempts = 0;
+async function doLogin(user, pass) {
+  try {
+    const r = await api('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({username: user, password: pass}) });
+    if (r.status === 'ok') { await bootstrap(); return true; }
+  } catch(e) { toast(e.message, true); }
+  return false;
+}
+
+function showLogin() {
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('loginScreen').classList.add('active');
+}
+
+async function doLogout() {
+  try { await api('/api/logout', { method: 'POST' }); } catch(e) {}
+  showLogin();
+}
+
+async function bootstrap() {
+  try {
+    me = await api('/api/me');
+  } catch(e) {
+    showLogin();
+    return;
+  }
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('appWrap').style.display = 'block';
+  const chip = document.getElementById('userChip');
+  chip.textContent = me.display_name || me.username;
+  const badge = document.getElementById('roleBadge');
+  badge.className = 'role-badge role-' + me.role;
+  badge.textContent = me.role === 'supervisor' ? 'Supervisor' : me.role === 'admin' ? 'Admin' : 'Benutzer';
+  document.getElementById('manageBtn').style.display = (me.role === 'admin' || me.role === 'supervisor') ? '' : 'none';
+  document.getElementById('createUserSection').style.display = (me.role === 'admin') ? 'block' : 'none';
+  document.getElementById('newFolderForm').style.display = me.can_manage ? '' : 'none';
+  applyRoleUI();
+  resetSelection();
+}
+
+function applyRoleUI() {
+  document.getElementById('subFolderBtn').style.display = me.can_manage ? '' : 'none';
+  document.getElementById('deleteFolderBtn').style.display = me.can_delete ? '' : 'none';
+}
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = (isError ? 'error ' : '') + 'show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/api/stats');
+    document.getElementById('stats').innerHTML = `
+      <span class="stat-pill">Ordner <b>${s.folders}</b></span>
+      <span class="stat-pill">Archive <b>${s.archives}</b></span>
+      <span class="stat-pill">Versionen <b>${s.versions}</b></span>
+      <span class="stat-pill" style="${s.editing ? 'border-color:#b91c1c;color:#fca5a5' : ''}">In Bearbeitung <b>${s.editing}</b></span>`;
+  } catch(e) {}
+}
+
+function getPath(folderId) {
+  if (!folderId) return '';
+  const parts = [];
+  let id = folderId;
+  let guard = 0;
+  while (id && guard++ < 50) {
+    const f = folderMap[id];
+    if (!f) break;
+    parts.unshift(f.name);
+    id = f.parent_id;
+  }
+  return parts.join(' / ');
+}
+
+function collectTreeHtml(folders, depth) {
+  let html = '';
+  for (const f of folders) {
+    folderMap[f.id] = { id: f.id, name: f.name, parent_id: f.parent_id };
+    const hasChildren = Array.isArray(f.children) && f.children.length;
+    const icon = hasChildren ? '▾' : '▸';
+    const selected = f.id === currentFolderId ? ' selected' : '';
+    html += `
+      <div class="folder-row${selected}" data-folder="${f.id}" style="padding-left:${8 + depth * 18}px">
+        <span class="folder-icon">${icon}</span>
+        <span class="folder-name">${esc(f.name)}</span>
+        ${me && me.can_manage ? `<span class="folder-actions">
+          <button class="icon-btn" data-act="sub" data-id="${f.id}" title="Unterordner">⊕</button>
+          <button class="icon-btn" data-act="rename" data-id="${f.id}" title="Umbenennen">✎</button>
+          <button class="icon-btn" data-act="delete" data-id="${f.id}" title="Löschen">🗑</button>
+        </span>` : ''}
+      </div>`;
+    if (hasChildren) {
+      html += collectTreeHtml(f.children, depth + 1);
+    }
+  }
+  return html;
+}
+
+function renderTree(folders, container) {
+  container.innerHTML = collectTreeHtml(folders, 0);
+  const countEl = document.getElementById('folderCount');
+  const total = Object.keys(folderMap).length;
+  countEl.textContent = total + ' Ordner' + (total === 1 ? '' : 'n');
+  countEl.style.display = 'inline-flex';
+}
+
+async function loadTree() {
+  const errEl = document.getElementById('treeError');
+  const treeEl = document.getElementById('folderTree');
+  try {
+    errEl.style.display = 'none';
+    const folders = await api('/api/folders');
+    renderTree(folders, treeEl);
+  } catch(e) {
+    errEl.textContent = 'Fehler beim Laden: ' + e.message;
+    errEl.style.display = 'block';
+    treeEl.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-icon">⚠️</div><p>Ordner konnten nicht geladen werden.</p></div>';
+  }
+}
+
+async function createFolder(parentId, name) {
+  let input = null;
+  if (!name) {
+    input = document.getElementById('newFolderName');
+    name = input.value.trim();
+  }
+  if (!name) return;
+  try {
+    await api('/api/folders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, parent_id: parentId}) });
+    if (input) input.value = '';
+    await loadTree();
+    if (parentId) selectFolder(parentId);
+    await loadStats();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function selectFolder(id) {
+  currentFolderId = id;
+  document.getElementById('uploadBtn').disabled = false;
+  document.getElementById('subFolderBtn').disabled = false;
+  document.getElementById('deleteFolderBtn').disabled = false;
+  await loadTree();
+  await loadArchives(id);
+  updateBreadcrumb();
+}
+
+async function renameFolder(id) {
+  const f = folderMap[id];
+  const name = prompt('Neuer Name:', f.name);
+  if (!name || name.trim() === f.name) return;
+  try {
+    await api('/api/folders/' + id, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: name.trim()}) });
+    await loadTree();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteFolder(id) {
+  if (!confirm('Ordner inkl. aller Unterordner und Archive endgültig löschen?')) return;
+  try {
+    await api('/api/folders/' + id, { method: 'DELETE' });
+    if (currentFolderId === id) resetSelection();
+    else await loadTree();
+    await loadStats();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteCurrentFolder() {
+  if (currentFolderId) await deleteFolder(currentFolderId);
+}
+
+async function openSubFolder(parentId = null) {
+  subfolderParentId = parentId || currentFolderId;
+  resetSubfolderChecks();
+  document.getElementById('subfolderName').value = '';
+  openModal('subfolderModal');
+}
+
+function resetSubfolderChecks() {
+  document.querySelectorAll('#subfolderChecks input[name=subcat]').forEach(c => c.checked = false);
+}
+
+function updateBreadcrumb() {
+  const name = currentFolderId ? (folderMap[currentFolderId]?.name || '') : '';
+  document.getElementById('currentFolderName').textContent = name || 'Bitte Ordner wählen';
+  document.getElementById('breadcrumb').textContent = currentFolderId ? getPath(currentFolderId) : '';
+}
+
+function resetSelection() {
+  currentFolderId = null;
+  document.getElementById('currentFolderName').textContent = 'Bitte Ordner wählen';
+  document.getElementById('breadcrumb').textContent = '';
+  document.getElementById('uploadBtn').disabled = true;
+  document.getElementById('subFolderBtn').disabled = true;
+  document.getElementById('deleteFolderBtn').disabled = true;
+  document.getElementById('archiveList').innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div><p>Wähle links einen Ordner aus</p></div>';
+  loadTree();
+}
+
+async function loadArchives(folderId) {
+  const el = document.getElementById('archiveList');
+  try {
+    const archives = await api(`/api/folders/${folderId}/archives`);
+    if (!archives.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><p>Keine Archive in diesem Ordner.<br>Klicke auf "Upload", um eine Datei hochzuladen.</p></div>';
+      return;
+    }
+    el.innerHTML = archives.map(a => `
+      <div class="archive-card">
+        <div class="archive-info">
+          <div class="archive-name">${esc(a.name)} <span class="badge badge-${a.status}">${a.status === 'bearbeitung' ? 'In Bearbeitung' : 'Frei'}</span></div>
+          <div class="archive-meta"><span>${a.version_count} Version(en)</span><span>${a.latest_version ? fmtSize(a.latest_version.size_bytes) + ' · ' + fmtDate(a.latest_version.created_at) : ''}</span></div>
+        </div>
+        <div class="archive-actions">
+          <button class="btn-sm" onclick="downloadArchive(${a.id})">⬇ Download</button>
+          <button class="btn-sm" onclick="openDetail(${a.id})">💬 Details</button>
+          ${a.status === 'bearbeitung'
+            ? `<button class="btn-sm" onclick="releaseArchive(${a.id})">✓ Freigeben</button>`
+            : `<button class="btn-sm" style="border-color:#b91c1c" onclick="startEditing(${a.id})">✎ Bearbeiten</button>`}
+          ${me && me.can_delete ? `<button class="btn-sm" style="border-color:#7f1d1d;color:#fca5a5" onclick="deleteArchive(${a.id})">🗑</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { el.innerHTML = '<div class="empty"><p>Fehler: ' + esc(e.message) + '</p></div>'; }
+}
+
+function openUpload() {
+  if (!currentFolderId) return;
+  document.getElementById('uploadFile').value = '';
+  document.getElementById('uploadComment').value = '';
+  openModal('uploadModal');
+}
+
+async function submitUpload(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('uploadFile');
+  const comment = document.getElementById('uploadComment').value.trim();
+  const file = fileInput.files[0];
+  if (!file) { toast('Datei wählen', true); return; }
+  if (!comment) { toast('Kommentar ist Pflicht beim Upload', true); return; }
+
+  const fd = new FormData();
+  fd.append('folder_id', currentFolderId);
+  fd.append('comment', comment);
+  fd.append('file', file);
+
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  try {
+    await api('/api/archives', { method: 'POST', body: fd });
+    closeModal('uploadModal');
+    toast('Upload erfolgreich');
+    await loadArchives(currentFolderId);
+    await loadStats();
+  } catch(err) { toast(err.message, true); }
+  btn.disabled = false;
+}
+
+function startEditing(id) {
+  currentArchiveId = id;
+  pendingEditStatus = 'bearbeitung';
+  document.getElementById('editModalTitle').textContent = 'Auf "In Bearbeitung" setzen';
+  document.getElementById('editComment').value = '';
+  openModal('editModal');
+}
+
+async function releaseArchive(id) {
+  const comment = prompt('Kommentar zur Freigabe (optional):') || '';
+  try {
+    await api('/api/archives/' + id + '/status', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: 'frei', comment}) });
+    toast('Freigegeben');
+    await loadArchives(currentFolderId);
+    await loadStats();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function submitEdit(e) {
+  e.preventDefault();
+  const comment = document.getElementById('editComment').value.trim();
+  if (!pendingEditStatus) return;
+  try {
+    await api('/api/archives/' + currentArchiveId + '/status', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: pendingEditStatus, comment}) });
+    closeModal('editModal');
+    toast(pendingEditStatus === 'bearbeitung' ? 'Archiv ist jetzt "In Bearbeitung"' : 'Freigegeben');
+    await loadArchives(currentFolderId);
+    await loadStats();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function openDetail(id) {
+  const [archive, versions, comments] = await Promise.all([
+    api(`/api/archives/${id}`),
+    api(`/api/archives/${id}/versions`),
+    api(`/api/archives/${id}/comments`),
+  ]);
+  currentArchiveId = id;
+  document.getElementById('detailTitle').textContent = archive.name;
+  let html = '<h4 style="margin-bottom:8px;color:#94a3b8;font-size:13px">Versionen</h4>';
+  html += (versions.length ? versions.map(v => `
+    <div class="version-item">
+      <div><b>V${v.version_number}</b> <span style="color:#64748b;font-size:12px">· ${fmtSize(v.size_bytes)} · ${fmtDate(v.created_at)}</span></div>
+      <button class="btn-sm" onclick="downloadVersion(${id}, ${v.id})">Download</button>
+    </div>`).join('') : '<div class="empty" style="padding:16px"><p>Keine Versionen</p></div>');
+
+  html += '<h4 style="margin:18px 0 8px;color:#94a3b8;font-size:13px">Verlauf / Kommentare</h4>';
+  html += `<div class="comment-meta" style="margin-bottom:8px">${comments.length} Einträge · Neueste zuerst</div>`;
+  html += (comments.length ? comments.map(c => `
+    <div class="comment-item">
+      <div class="comment-action">${c.action}${c.version_number ? ' · V' + c.version_number : ''}${c.user_name ? ' · ' + esc(c.user_name) : ''}</div>
+      <div class="comment-text">${esc(c.text)}</div>
+      <div class="comment-meta">${fmtDate(c.created_at)}</div>
+    </div>`).join('') : '<div class="empty" style="padding:16px"><p>Noch keine Kommentare</p></div>');
+
+  html += '<div class="form-group" style="margin-top:16px">';
+  html += '<label>Neuer Kommentar</label>';
+  html += '<div style="display:flex;gap:8px"><input type="text" id="newCommentText" placeholder="Kommentar eingeben..."><button class="btn" onclick="addComment()">Hinzufügen</button></div>';
+  html += '</div>';
+  document.getElementById('detailBody').innerHTML = html;
+  openModal('detailModal');
+}
+
+async function addComment() {
+  const input = document.getElementById('newCommentText');
+  const text = input.value.trim();
+  if (!text) { toast('Kommentar darf nicht leer sein', true); return; }
+  try {
+    await api('/api/archives/' + currentArchiveId + '/comments', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text}) });
+    await openDetail(currentArchiveId);
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteArchive(id) {
+  if (!confirm('Archiv endgültig löschen?')) return;
+  try {
+    await api('/api/archives/' + id, { method: 'DELETE' });
+    toast('Gelöscht');
+    await loadArchives(currentFolderId);
+    await loadStats();
+  } catch(e) { toast(e.message, true); }
+}
+
+function downloadArchive(id) { window.open('/api/archives/' + id + '/download'); }
+function downloadVersion(id, vid) { window.open(`/api/archives/${id}/download/${vid}`); }
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// ---------- Verwaltung ----------
+
+function flattenFolderOptions(nodes, depth, out) {
+  for (const f of nodes) {
+    out.push({ id: f.id, label: '—'.repeat(depth) + ' ' + f.name });
+    if (f.children.length) flattenFolderOptions(f.children, depth + 1, out);
+  }
+  return out;
+}
+
+function openPasswordModal() {
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+  document.getElementById('pwNew2').value = '';
+  openModal('passwordModal');
+}
+
+async function submitPasswordChange(e) {
+  e.preventDefault();
+  const current = document.getElementById('pwCurrent').value;
+  const pw1 = document.getElementById('pwNew').value;
+  const pw2 = document.getElementById('pwNew2').value;
+  if (!current || !pw1) { toast('Alle Felder sind erforderlich', true); return; }
+  if (pw1 !== pw2) { toast('Neue Passwörter stimmen nicht überein', true); return; }
+  if (pw1.length < 4) { toast('Passwort muss mindestens 4 Zeichen lang sein', true); return; }
+  try {
+    await api('/api/me/password', { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ current_password: current, new_password: pw1 }) });
+    closeModal('passwordModal');
+    toast('Passwort geändert');
+  } catch(e) { toast(e.message, true); }
+}
+
+let manageState = { users: [], folders: [], perms: [] };
+
+async function openManage() {
+  await loadManageData();
+  openModal('manageModal');
+}
+
+async function loadManageData() {
+  try {
+    const [users, folders, perms] = await Promise.all([
+      api('/api/users'),
+      api('/api/folders'),
+      api('/api/permissions'),
+    ]);
+    manageState = { users, folders, perms };
+    renderManage();
+  } catch(e) { toast(e.message, true); }
+}
+
+function renderManage() {
+  const body = document.getElementById('manageBody');
+  const canEditUsers = me.role === 'admin';
+  body.innerHTML = manageState.users.map(u => {
+    const perms = manageState.perms.filter(p => p.user_id === u.id);
+    const roleOpts = ['admin', 'supervisor', 'user'].map(r =>
+      `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r === 'supervisor' ? 'Supervisor' : r === 'admin' ? 'Admin' : 'Benutzer'}</option>`).join('');
+    return `
+    <div class="user-card">
+      <div class="user-head">
+        <span class="uname">${esc(u.display_name || u.username)}</span>
+        <span class="role-badge role-${u.role}">${u.role === 'supervisor' ? 'Supervisor' : u.role === 'admin' ? 'Admin' : 'Benutzer'}</span>
+        ${canEditUsers && u.id !== me.id ? `<select id="roleSel_${u.id}" onchange="updateUserRole(${u.id})">${roleOpts}</select>` : ''}
+        ${canEditUsers && u.id !== me.id ? `<button class="btn-sm" onclick="resetUserPassword(${u.id})">Passwort</button>` : ''}
+        ${canEditUsers && u.id !== me.id ? `<button class="btn-sm" style="border-color:#7f1d1d;color:#fca5a5" onclick="deleteUserConfirm(${u.id})">Löschen</button>` : ''}
+      </div>
+      <div class="perms-title">Zugewiesene Ordner${perms.length ? '' : ' (keine)'}</div>
+      <div>
+        ${perms.map(p => `<span class="perm-chip">${esc(p.folder_name)} <button title="Entziehen" onclick="revokePerm(${p.id})">×</button></span>`).join('')}
+      </div>
+      <div class="select-row">
+        <select id="grantSel_${u.id}"></select>
+        <button class="btn" onclick="grantFolder(${u.id})">Zuweisen</button>
+      </div>
+    </div>`;
+  }).join('');
+  body.innerHTML += '<p style="color:#64748b;font-size:12px">Supervisor weisen Benutzern nur Ordner aus ihrem eigenen Bereich zu.</p>';
+
+  // Selects befüllen
+  const options = flattenFolderOptions(manageState.folders, 0, []);
+  let grantedFolderIds = new Set();
+  manageState.users.forEach(u => manageState.perms.filter(p => p.user_id === u.id).forEach(p => grantedFolderIds.add(u.id + '_' + p.folder_id)));
+  manageState.users.forEach(u => {
+    const sel = document.getElementById('grantSel_' + u.id);
+    if (!sel) return;
+    const existing = new Set(manageState.perms.filter(p => p.user_id === u.id).map(p => p.folder_id));
+    sel.innerHTML = options.filter(o => !existing.has(o.id)).map(o => `<option value="${o.id}">${esc(o.label)}</option>`).join('')
+      || '<option value="">Keine weiteren Ordner</option>';
+  });
+}
+
+async function createUser() {
+  const username = document.getElementById('nuUsername').value.trim();
+  const password = document.getElementById('nuPassword').value;
+  const display_name = document.getElementById('nuDisplay').value.trim();
+  const role = document.getElementById('nuRole').value;
+  if (!username || !password) { toast('Benutzername und Passwort erforderlich', true); return; }
+  try {
+    await api('/api/users', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username, password, role, display_name }) });
+    document.getElementById('nuUsername').value = '';
+    document.getElementById('nuPassword').value = '';
+    document.getElementById('nuDisplay').value = '';
+    toast('Benutzer angelegt');
+    await loadManageData();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function updateUserRole(id) {
+  const role = document.getElementById('roleSel_' + id).value;
+  try {
+    await api('/api/users/' + id, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role }) });
+    toast('Rolle geändert');
+    await loadManageData();
+  } catch(e) { toast(e.message, true); await loadManageData(); }
+}
+
+async function resetUserPassword(id) {
+  const pw = prompt('Neues Passwort für Benutzer:');
+  if (!pw) return;
+  try {
+    await api('/api/users/' + id, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: pw }) });
+    toast('Passwort geändert');
+  } catch(e) { toast(e.message, true); }
+}
+
+async function deleteUserConfirm(id) {
+  if (!confirm('Benutzer endgültig löschen? Zuweisungen entfallen.')) return;
+  try {
+    await api('/api/users/' + id, { method: 'DELETE' });
+    toast('Benutzer gelöscht');
+    await loadManageData();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function grantFolder(userId) {
+  const sel = document.getElementById('grantSel_' + userId);
+  const folderId = Number(sel.value);
+  if (!folderId) { toast('Kein Ordner ausgewählt', true); return; }
+  try {
+    await api('/api/permissions', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ user_id: userId, folder_id: folderId }) });
+    toast('Ordner zugewiesen');
+    await loadManageData();
+  } catch(e) { toast(e.message, true); }
+}
+
+async function revokePerm(permId) {
+  if (!confirm('Zuweisung entziehen? Alle zugehörigen Unterordner werden mit entzogen.')) return;
+  try {
+    await api('/api/permissions/' + permId, { method: 'DELETE' });
+    toast('Zuweisung entzogen');
+    await loadManageData();
+  } catch(e) { toast(e.message, true); }
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function fmtDate(s) { return new Date(s.replace(' ', 'T')).toLocaleString('de-DE'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('uploadForm').addEventListener('submit', submitUpload);
+document.getElementById('subfolderForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const names = [...document.querySelectorAll('#subfolderChecks input[name=subcat]:checked')].map(c => c.value);
+  const custom = document.getElementById('subfolderName').value.trim();
+  if (custom) names.push(custom);
+  if (!names.length) { toast('Bitte mindestens eine Kategorie auswählen', true); return; }
+  const submitBtn = document.getElementById('subfolderForm').querySelector('button[type=submit]');
+  submitBtn.disabled = true;
+  const errors = [];
+  for (const n of names) {
+    try {
+      await api('/api/folders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name: n, parent_id: subfolderParentId }) });
+    } catch(err) {
+      errors.push(n + ' (' + err.message + ')');
+    }
+  }
+  submitBtn.disabled = false;
+  if (errors.length) toast('Nicht angelegt: ' + errors.join('; '), true);
+  await loadTree();
+  if (subfolderParentId) selectFolder(subfolderParentId);
+  await loadStats();
+  resetSubfolderChecks();
+  document.getElementById('subfolderName').value = '';
+  closeModal('subfolderModal');
+});
+document.getElementById('editForm').addEventListener('submit', submitEdit);
+document.getElementById('passwordForm').addEventListener('submit', submitPasswordChange);
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const ok = await doLogin(document.getElementById('loginUser').value, document.getElementById('loginPass').value);
+  if (ok) {
+    document.getElementById('loginPass').value = '';
+    toast('Angemeldet');
+  }
+});
+document.getElementById('newFolderName').addEventListener('keydown', e => { if (e.key === 'Enter') createFolder(null); });
+document.getElementById('newFolderBtn').addEventListener('click', () => createFolder(null));
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }));
+
+document.getElementById('folderTree').addEventListener('click', e => {
+  const actionBtn = e.target.closest('[data-act]');
+  if (actionBtn) {
+    e.stopPropagation();
+    const id = Number(actionBtn.dataset.id);
+    const act = actionBtn.dataset.act;
+    if (act === 'sub') openSubFolder(id);
+    else if (act === 'rename') renameFolder(id);
+    else if (act === 'delete') deleteFolder(id);
+    return;
+  }
+  const row = e.target.closest('.folder-row');
+  if (row) selectFolder(Number(row.dataset.folder));
+});
+
+setInterval(() => {
+  if (!me || document.querySelector('.modal-overlay.active')) return;
+  loadStats();
+  if (currentFolderId) loadArchives(currentFolderId);
+  loadTree();
+}, 8000);
+
+bootstrap();
+</script>
+<footer>&copy; 2026 Fr3akOverflow &middot; MIT License</footer>
+</body>
+</html>
